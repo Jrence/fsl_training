@@ -74,7 +74,7 @@ detector_pose = vision.PoseLandmarker.create_from_options(options_pose)
 
 SEQUENCE_LENGTH = 60
 TOTAL_JOINTS = 75
-CONFIDENCE_THRESHOLD = 0.50     # 50% Relative Confidence Ratio
+CONFIDENCE_THRESHOLD = 0.75     # 75% Relative Confidence Ratio
 MOTION_DELTA_THRESHOLD = 0.0015 # Sensitive hand delta motion
 
 frame_buffer = deque(maxlen=SEQUENCE_LENGTH)
