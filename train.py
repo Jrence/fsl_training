@@ -349,14 +349,28 @@ def build_stgcn_model(
     x = layers.BatchNormalization()(x)
     x = layers.Dropout(0.5)(x)
 
-    # GLOBAL READOUT
-    x = layers.GlobalMaxPooling2D()(x)
+    # SPATIAL-TEMPORAL READOUT
+    # 1. Pool spatial joints (75 joints) to preserve all 60 temporal frames
+    x_spatial = layers.AveragePooling2D(pool_size=(1, TOTAL_JOINTS))(x)
+    x_seq = layers.Reshape((SEQUENCE_LENGTH, 64))(x_spatial)
+
+    # 2. Temporal feature modeling across the gesture trajectory
+    x_temp = layers.Conv1D(128, kernel_size=5, padding="same", activation="relu")(x_seq)
+    x_temp = layers.BatchNormalization()(x_temp)
+    x_temp = layers.Dropout(0.3)(x_temp)
+
+    # 3. Concatenate temporal average & peak activations (256-dim feature vector)
+    avg_pool = layers.GlobalAveragePooling1D()(x_temp)
+    max_pool = layers.GlobalMaxPooling1D()(x_temp)
+    concat = layers.Concatenate()([avg_pool, max_pool])
+
+    # 4. Dense classification layer with sufficient rank for 94 classes
     x = layers.Dense(
-        64,
+        128,
         activation="relu",
-        kernel_regularizer=regularizers.l2(0.01)
-    )(x)
-    x = layers.Dropout(0.5)(x)
+        kernel_regularizer=regularizers.l2(0.005)
+    )(concat)
+    x = layers.Dropout(0.4)(x)
 
     outputs = layers.Dense(
         num_classes,

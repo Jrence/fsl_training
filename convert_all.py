@@ -109,10 +109,13 @@ for class_name in os.listdir(SOURCE_DIR):
             video_has_two_hands = False
 
         frame_joints_list = []
+        previous_mid_shoulder = np.array([0.5, 0.5, 0.0])
+        previous_shoulder_width = 1.0
+
         for hand_result, pose_result in processed_frames_data:
             frame_joints = np.zeros((TOTAL_JOINTS, 3))
-            mid_shoulder = np.array([0.5, 0.5, 0.0])
-            shoulder_width = 1.0
+            mid_shoulder = previous_mid_shoulder.copy()
+            shoulder_width = previous_shoulder_width
             
             # Pose Normalization
             if pose_result.pose_landmarks:
@@ -120,10 +123,12 @@ for class_name in os.listdir(SOURCE_DIR):
                 left_shoulder = np.array([pose_lms[11].x, pose_lms[11].y, pose_lms[11].z])
                 right_shoulder = np.array([pose_lms[12].x, pose_lms[12].y, pose_lms[12].z])
                 
-                mid_shoulder = (left_shoulder + right_shoulder) / 2.0
-                shoulder_width = np.linalg.norm(left_shoulder - right_shoulder)
-                if shoulder_width < 1e-6:
-                    shoulder_width = 1.0  
+                s_width = np.linalg.norm(left_shoulder - right_shoulder)
+                if s_width > 0.05:
+                    mid_shoulder = (left_shoulder + right_shoulder) / 2.0
+                    shoulder_width = s_width
+                    previous_mid_shoulder = mid_shoulder.copy()
+                    previous_shoulder_width = shoulder_width
                 
                 pose_pts = (np.array([[lm.x, lm.y, lm.z] for lm in pose_lms]) - mid_shoulder) / shoulder_width
                 frame_joints[:33] = pose_pts
