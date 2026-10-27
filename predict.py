@@ -168,10 +168,9 @@ while cap.isOpened():
     frame = cv2.flip(frame, 1)
     h, w, _ = frame.shape
 
-    # Downscale frame for fast MediaPipe landmark extraction (2x speedup)
-    small_frame = cv2.resize(frame, (320, 240))
-    rgb_small = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_small)
+    # Use native camera resolution for accurate hand & finger detection
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
     # Run Hand Landmarker on every frame
     hand_result = detector_hand.detect(mp_image)
@@ -315,9 +314,16 @@ while cap.isOpened():
             confidence_text = "Show your hand to the camera"
 
     # UI Information Card Overlay
-    cv2.rectangle(frame, (15, 15), (510, 95), (20, 20, 20), -1)
+    cv2.rectangle(frame, (15, 15), (550, 110), (20, 20, 20), -1)
     cv2.putText(frame, pred_label, (25, 48), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-    cv2.putText(frame, confidence_text, (25, 78), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (220, 220, 220), 1)
+    cv2.putText(frame, confidence_text, (25, 76), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (220, 220, 220), 1)
+
+    # Diagnostic Badges: Hands, Pose tracking, and Buffer status
+    detected_hands_count = len(hand_result.hand_landmarks) if (hand_result and hand_result.hand_landmarks) else 0
+    pose_status = "Pose: OK" if ('pose_result' in locals() and pose_result and pose_result.pose_landmarks) else "Pose: Default"
+    diag_text = f"Hands: {detected_hands_count} | {pose_status} | Frames: {len(frame_buffer)}/60"
+    diag_color = (0, 255, 128) if detected_hands_count > 0 else (0, 165, 255)
+    cv2.putText(frame, diag_text, (25, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.45, diag_color, 1)
 
     # FPS Indicator
     cv2.putText(frame, f"FPS: {avg_fps:.1f}", (w - 130, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2)

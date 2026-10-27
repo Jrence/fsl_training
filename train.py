@@ -602,8 +602,8 @@ history = model.fit(
         X_val,
         y_val
     ),
-    epochs=150,
-    batch_size=8,
+    epochs=80,
+    batch_size=16,
     class_weight=class_weights_dict,
     callbacks=callbacks,
     verbose=1
@@ -620,3 +620,16 @@ model.save(
 
 print("\nST-GCN training complete!")
 print("Model saved to: fsl_model.keras")
+
+
+print("\nConverting model to TFLite for high-speed live inference...")
+try:
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    tflite_model = converter.convert()
+
+    with open("fsl_model.tflite", "wb") as f:
+        f.write(tflite_model)
+    print("Exported: fsl_model.tflite successfully!")
+except Exception as e:
+    print(f"Warning: TFLite conversion issue: {e}")
